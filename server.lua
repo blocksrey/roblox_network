@@ -13,12 +13,23 @@ local network = {}
 local runners = {}
 local senders = {}
 
-signal(remoteevent.OnServerEvent)(function(client, key, ...)
+signal(remoteevent.OnServerEvent)(function(plr, key, ...)
 	local runner = runners[key]
 	if runner then
-		runner[1](client, ...)
+		runner[1](plr, ...)
+	else
+		print("no runner: "..key)
 	end
 end)
+
+function remotefunction.OnServerInvoke(plr, key, ...)
+	local sender = senders[key]
+	if sender then
+		return sender(plr, ...)
+	else
+		print("no sender: "..key)
+	end
+end
 
 function network.receive(key, func)
 	if not runners[key] then
@@ -27,25 +38,16 @@ function network.receive(key, func)
 	return runners[key][2](func)
 end
 
-function network.send(...)
-	fireclient(remoteevent, ...)
-end
-
 function network.bounce(key, func)
 	senders[key] = func
 end
 
-function network.fetch(...)
-	return invokeclient(remotefunction, ...)
+function network.send(...)
+	fireclient(remoteevent, ...)
 end
 
-function remotefunction.OnServerInvoke(client, key, ...)
-	local sender = senders[key]
-	if sender then
-		return sender(client, ...)
-	else
-		print("no sender: "..key)
-	end
+function network.fetch(...)
+	return invokeclient(remotefunction, ...)
 end
 
 function network.share(...)
