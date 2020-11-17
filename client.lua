@@ -1,52 +1,48 @@
-local signal = _G.require("signal")
-local event  = _G.require("event")
+local Signal = _G.require("Signal")
 
-local replicatedstorage = game:GetService("ReplicatedStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local remoteevent    = replicatedstorage:WaitForChild("RemoteEvent")
-local remotefunction = replicatedstorage:WaitForChild("RemoteFunction")
-local fireserver     = remoteevent.FireServer
-local invokeserver   = remotefunction.InvokeServer
+local RemoteEvent    = ReplicatedStorage:WaitForChild("RemoteEvent")
+local RemoteFunction = ReplicatedStorage:WaitForChild("RemoteFunction")
 
-local network = {}
 local runners = {}
 local senders = {}
 
-signal(remoteevent.OnClientEvent)(function(key, ...)
-	local runner = runners[key]
-	if runner then
-		runner[1](...)
+RemoteEvent.OnClientEvent:Connect(function(key, ...)
+	if runners[key] then
+		runners[key]:Fire(...)
 	else
 		print("no runner: "..key)
 	end
 end)
 
-function remotefunction.OnClientInvoke(key, ...)
-	local sender = senders[key]
-	if sender then
-		return sender(...)
+function RemoteFunction.OnClientInvoke(key, ...)
+	if senders[key] then
+		senders[key]:Fire(...)
 	else
 		print("no sender: "..key)
 	end
 end
 
-function network.receive(key, func)
+local Network = {}
+
+function Network.receive(key, func)
 	if not runners[key] then
-		runners[key] = {event()}
+		runners[key] = Signal.new()
 	end
-	return runners[key][2](func)
+	return runners[key]:Connect(func)
 end
 
-function network.bounce(key, func)
+function Network.bounce(key, func)
 	senders[key] = func
 end
 
-function network.send(...)
-	fireserver(remoteevent, ...)
+function Network.send(...)
+	RemoteEvent:FireServer(...)
 end
 
-function network.fetch(...)
-	return invokeserver(remotefunction, ...)
+function Network.fetch(...)
+	return RemoteFunction:InvokeServer(...)
 end
 
-return network
+return Network

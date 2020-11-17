@@ -1,57 +1,52 @@
-local signal = _G.require("signal")
-local event  = _G.require("event")
+local Signal = _G.require("Signal")
 
-local replicatedstorage = game:GetService("ReplicatedStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local remoteevent    = Instance.new("RemoteEvent", replicatedstorage)
-local remotefunction = Instance.new("RemoteFunction", replicatedstorage)
-local fireclient     = remoteevent.FireClient
-local fireallclients = remoteevent.FireAllClients
-local invokeclient   = remotefunction.InvokeClient
+local RemoteEvent    = Instance.new("RemoteEvent", ReplicatedStorage)
+local RemoteFunction = Instance.new("RemoteFunction", ReplicatedStorage)
 
-local network = {}
 local runners = {}
 local senders = {}
 
-signal(remoteevent.OnServerEvent)(function(plr, key, ...)
-	local runner = runners[key]
-	if runner then
-		runner[1](plr, ...)
+RemoteEvent.OnServerEvent:Connect(function(plr, key, ...)
+	if runners[key] then
+		runners[key]:Fire(plr, ...)
 	else
 		print("no runner: "..key)
 	end
 end)
 
-function remotefunction.OnServerInvoke(plr, key, ...)
-	local sender = senders[key]
-	if sender then
-		return sender(plr, ...)
+function RemoteFunction.OnServerInvoke(plr, key, ...)
+	if senders[key] then
+		senders[key]:Fire(plr, ...)
 	else
 		print("no sender: "..key)
 	end
 end
 
-function network.receive(key, func)
+local Network = {}
+
+function Network.receive(key, func)
 	if not runners[key] then
-		runners[key] = {event()}
+		runners[key] = Signal.new()
 	end
-	return runners[key][2](func)
+	return runners[key]:Connect(func)
 end
 
-function network.bounce(key, func)
+function Network.bounce(key, func)
 	senders[key] = func
 end
 
-function network.send(...)
-	fireclient(remoteevent, ...)
+function Network.send(...)
+	RemoteEvent:FireClient(...)
 end
 
-function network.fetch(...)
-	return invokeclient(remotefunction, ...)
+function Network.fetch(...)
+	return RemoteFunction:InvokeClient(...)
 end
 
-function network.share(...)
-	fireallclients(remoteevent, ...)
+function Network.share(...)
+	RemoteEvent:FireAllClients(...)
 end
 
-return network
+return Network
