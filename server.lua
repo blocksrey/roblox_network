@@ -26,7 +26,7 @@ end
 
 local Network = {}
 
-function Network.receive(key, func)
+function Network.receive(key)
 	if not runners[key] then
 		runners[key] = Signal.new()
 	end
