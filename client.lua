@@ -30,7 +30,7 @@ function Network.receive(key, func)
 	if not runners[key] then
 		runners[key] = Signal.new()
 	end
-	return runners[key]:Connect(func)
+	return runners[key]
 end
 
 function Network.bounce(key, func)
